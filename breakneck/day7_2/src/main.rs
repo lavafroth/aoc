@@ -1,44 +1,19 @@
 use std::io::stdin;
 
-#[derive(Clone, Debug)]
-enum Op {
-    Add,
-    Mul,
-    Pip,
-}
-
-fn preorder(res: u64, values: &[u64], ops: &[Op]) -> bool {
+fn preorder(res: u64, values: &[u64]) -> bool {
     let Some(&top) = values.first() else {
         return false;
     };
-    if values.len() == 1 && res == top {
-        return true;
-    }
-    let mut path = false;
-    if res % top == 0 {
-        let mut next_ops = Vec::from(ops);
-        next_ops.push(Op::Mul);
-        path |= preorder(res / top, &values[1..], &next_ops);
-    }
-
-    if res > top {
-        let mut next_ops = Vec::from(ops);
-        next_ops.push(Op::Add);
-        path |= preorder(res - top, &values[1..], &next_ops);
-    }
-
-    // log requires operand to be nonzero
-    if top != 0 && res > top {
-        let power_of_10 = 10u64.pow(top.ilog10() + 1);
-        let delta = res - top;
-        if delta % power_of_10 == 0 {
-            let mut next_ops = Vec::from(ops);
-            next_ops.push(Op::Pip);
-            path |= preorder(delta / power_of_10, &values[1..], &next_ops);
-        }
-    }
-
-    path
+    (values.len() == 1 && res == top)
+        || (res % top == 0 && preorder(res / top, &values[1..]))
+        || (res > top && preorder(res - top, &values[1..]))
+        || res
+            .checked_sub(top)
+            .zip(top.checked_ilog10().map(|log10| 10u64.pow(log10 + 1)))
+            .and_then(|(delta, power_of_10)| {
+                (delta % power_of_10 == 0).then_some(preorder(delta / power_of_10, &values[1..]))
+            })
+            .unwrap_or_default()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -56,7 +31,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|v| v.trim().parse())
             .rev()
             .collect::<Result<Vec<u64>, _>>()?;
-        if !preorder(r, &values, &[]) {
+        if !preorder(r, &values) {
             continue;
         };
 

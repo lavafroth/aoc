@@ -1,30 +1,12 @@
 use std::io::stdin;
 
-#[derive(Clone, Debug)]
-enum Op {
-    Add,
-    Mul,
-}
-
-fn preorder(res: u64, values: &[u64], ops: &[Op]) -> bool {
+fn preorder(res: u64, values: &[u64]) -> bool {
     let Some(&top) = values.first() else {
         return false;
     };
-    if values.len() == 1 && res == top {
-        return true;
-    }
-    let mut path = false;
-    if res % top == 0 {
-        let mut next_ops = Vec::from(ops);
-        next_ops.push(Op::Mul);
-        path |= preorder(res / top, &values[1..], &next_ops);
-    }
-    if res > top {
-        let mut next_ops = Vec::from(ops);
-        next_ops.push(Op::Add);
-        path |= preorder(res - top, &values[1..], &next_ops);
-    }
-    path
+    (values.len() == 1 && res == top)
+        || (res % top == 0 && preorder(res / top, &values[1..]))
+        || (res > top && preorder(res - top, &values[1..]))
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|v| v.trim().parse())
             .rev()
             .collect::<Result<Vec<u64>, _>>()?;
-        if !preorder(r, &values, &[]) {
+        if !preorder(r, &values) {
             continue;
         };
         sum += r;
