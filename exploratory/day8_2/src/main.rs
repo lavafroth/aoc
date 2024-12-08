@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if v == '.' || v == '#' {
                 continue;
             }
-            nodes.entry(v).or_insert(vec![]).push(Point {
+            nodes.entry(v).or_default().push(Point {
                 x: i as i64,
                 y: j as i64,
             });
@@ -43,10 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("len(points) = {}", nodes.len());
     let mut antinotes = BTreeSet::new();
     for (_, points) in nodes.iter() {
-        for (i, &a) in points.iter().enumerate() {
-            if points.len() - 1 == i {
-                break;
-            }
+        for (i, &a) in points[..points.len() - 1].iter().enumerate() {
             for &b in &points[i + 1..] {
                 let mut left = Some((a, b));
                 let mut right = Some((a, b));

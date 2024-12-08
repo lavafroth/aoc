@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Point {
@@ -25,14 +25,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .collect();
     let y_max = map.len() as i64;
     let x_max = map[0].len() as i64;
-    let mut points: HashMap<char, Vec<Point>> = HashMap::new();
+    let mut points: BTreeMap<char, Vec<Point>> = BTreeMap::new();
 
     for (i, row) in map.iter().enumerate() {
         for (j, &v) in row.iter().enumerate() {
             if v == '.' || v == '#' {
                 continue;
             }
-            points.entry(v).or_insert(vec![]).push(Point {
+            points.entry(v).or_default().push(Point {
                 x: i as i64,
                 y: j as i64,
             });
@@ -42,10 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("len(points) = {}", points.len());
     let mut antinotes = BTreeSet::new();
     for (_, points) in points.iter() {
-        for (i, &a) in points.iter().enumerate() {
-            if points.len() - 1 == i {
-                break;
-            }
+        for (i, &a) in points[0..points.len() - 1].iter().enumerate() {
             for &b in &points[i + 1..] {
                 if let Some(p) = a.reverse_midpoint(b).bounds_check(x_max, y_max) {
                     antinotes.insert(p);
@@ -56,7 +53,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-    // println!("{:?}", antinotes);
     println!("{}", antinotes.len());
     Ok(())
 }
