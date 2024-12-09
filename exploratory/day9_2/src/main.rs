@@ -56,13 +56,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 continue;
             }
 
-            for j in 0..blocks.len() {
-                let dst = blocks[j];
-
-                if j > i {
-                    continue;
-                }
-                let Block::Free(free) = dst else {
+            for j in 0..i {
+                let Block::Free(free) = blocks[j] else {
                     continue;
                 };
 
@@ -71,6 +66,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 };
 
                 blocks[j] = src;
+                // since we go down from the largest file ID,
+                // we can assure that we will never touch this
+                // free space ever again.
                 blocks[i] = Block::Free(size);
                 blocks.insert(j + 1, Block::Free(delta));
                 break;
@@ -79,6 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         last_ident -= 1;
 
+        // use this function to pretty print a layout
         // pretty(&blocks);
     }
 
