@@ -1,5 +1,5 @@
 use dashu::integer::UBig;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::AddAssign};
 
 #[derive(Clone)]
 pub enum Stone {
@@ -14,58 +14,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let input = std::fs::read_to_string(arg)?;
     let mut memo = BTreeMap::new();
-    let numbers = input
-        .trim()
-        .split_whitespace()
-        .map(|n| UBig::from_str_radix(n, 10))
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let mut popo: BTreeMap<UBig, u64> = BTreeMap::new();
-    for n in numbers {
-        *popo.entry(n).or_default() += 1u64;
+    let mut numbers: BTreeMap<UBig, u64> = BTreeMap::new();
+    for n in input.trim().split_whitespace() {
+        let n = UBig::from_str_radix(n, 10)?;
+        numbers.entry(n).or_default().add_assign(1u64);
     }
 
-    let mut numbers = popo;
-
     for _ in 0..75 {
-        let mut out: BTreeMap<UBig, u64> = BTreeMap::new();
+        let mut next_layer: BTreeMap<UBig, u64> = BTreeMap::new();
         for (number, count) in numbers {
             let precomputed = memo.get(&number).cloned().unwrap_or_else(|| {
-                let mut momo = Stone::Single(UBig::ONE);
-                if number != UBig::ZERO {
-                    let nstr = number.to_string();
-                    let digi = nstr.len();
-                    if digi % 2 == 0 {
-                        let left = UBig::from_str_radix(&nstr[..digi / 2], 10).unwrap();
-                        let right = UBig::from_str_radix(&nstr[digi / 2..], 10).unwrap();
-                        momo = Stone::Split { left, right };
-                        memo.insert(number, momo.clone());
-                        // it is even
-                    } else {
-                        let val = number.clone() * 2024u16;
-                        momo = Stone::Single(val);
-                        memo.insert(number, momo.clone());
-                    }
+                if number == UBig::ZERO {
+                    return Stone::Single(UBig::ONE);
                 }
-                momo
+                let nstr = number.to_string();
+                let digits = nstr.len();
+                let uncached = if digits & 1 == 0 {
+                    // `number` has an even number of digits
+                    let (left, right) = nstr.split_at(digits / 2);
+                    let left = UBig::from_str_radix(left, 10).unwrap_or_default();
+                    let right = UBig::from_str_radix(right, 10).unwrap_or_default();
+                    Stone::Split { left, right }
+                } else {
+                    Stone::Single(number.clone() * 2024u16)
+                };
+                memo.insert(number, uncached.clone());
+                uncached
             });
             match precomputed {
                 Stone::Split { left, right } => {
-                    *out.entry(left.clone()).or_default() += count;
-                    *out.entry(right.clone()).or_default() += count;
+                    *next_layer.entry(left.clone()).or_default() += count;
+                    *next_layer.entry(right.clone()).or_default() += count;
                 }
                 Stone::Single(val) => {
-                    *out.entry(val.clone()).or_default() += count;
+                    *next_layer.entry(val.clone()).or_default() += count;
                 }
             }
         }
 
-        numbers = out;
+        numbers = next_layer;
     }
-    let mut sum = 0;
-    for (_, count) in numbers {
-        sum += count;
-    }
+    let sum: u64 = numbers.values().sum();
     println!("{:?}", sum);
     Ok(())
 }
